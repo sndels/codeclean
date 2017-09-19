@@ -1,0 +1,11 @@
+Koodin putsaus
+
+Vaihe 1: Perustoiminnallisuus
+----------------------------------------------------------------------------
+Lähden projektiin tekemällä palikkamallin kommenttien poistamisen yhdestä
+argumenttina annetusta tiedostosta, jotta perusta myöhemmille laajennuksille 
+olisi kunnossa. Implementaatio tulee tässä vaiheessa yksittäiseen funktioon,
+josta sitten pilkon pienempiä osia, mikäli toistoa ilmenee. Pohjatyön arkki-
+tehtuuri on minimaalista myös siitä syystä, etten ole vielä tässä vaiheessa
+perehtynyt prosessien alulle polkaisemiseen. Mahdollisimman omavaraisen
+toteutuksen tekeminen näyttää siis parhaalta ratkaisulta.
