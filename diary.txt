@@ -9,3 +9,13 @@ josta sitten pilkon pienempiä osia, mikäli toistoa ilmenee. Pohjatyön arkki-
 tehtuuri on minimaalista myös siitä syystä, etten ole vielä tässä vaiheessa
 perehtynyt prosessien alulle polkaisemiseen. Mahdollisimman omavaraisen
 toteutuksen tekeminen näyttää siis parhaalta ratkaisulta.
+
+Siivousfunktio muotoutui yksinkertaiseksi rajatun merkkimäärän bufferiin ri-
+vejä lukevaksi ratkaisuksi. Jonkinlainen flägeillä toteutettu tilakone tuntui
+loogiselta ratkaisulta ylipitkien rivien ja kommenttilohkojen käsittelyyn.
+Tässä vaiheessa ohjelma poistaa annetun tiedoston kommentit ja täysin tyhjät
+rivit. Määritetyn rivibufferin yli venyvät, rajalta alkavat tai sille päätty-
+vät kommentit toimivat myös niinkuin pitää, mutta tabeja tai välilyöntejä si-
+sältävät ri vit jäävät putsattuun tiedostoon. Ohjelma tulostaa myös lokin
+operaatioista riveineen omaan tiedostoonsa ja toteutuksena on sprintf, jotta
+porttaus lopulliseen pääprosessiin huuteluun olisi yksinkertaista.
