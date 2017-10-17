@@ -1,21 +1,18 @@
-Koodin putsaus
+Code cleaning
 
-Vaihe 1: Perustoiminnallisuus
-----------------------------------------------------------------------------
-Lähden projektiin tekemällä palikkamallin kommenttien poistamisen yhdestä
-argumenttina annetusta tiedostosta, jotta perusta myöhemmille laajennuksille 
-olisi kunnossa. Implementaatio tulee tässä vaiheessa yksittäiseen funktioon,
-josta sitten pilkon pienempiä osia, mikäli toistoa ilmenee. Pohjatyön arkki-
-tehtuuri on minimaalista myös siitä syystä, etten ole vielä tässä vaiheessa
-perehtynyt prosessien alulle polkaisemiseen. Mahdollisimman omavaraisen
-toteutuksen tekeminen näyttää siis parhaalta ratkaisulta.
+Part 1: Basic functionality
+-------------------------------------------------------------------------------
+I'll start by implementing a bare-bones version of comment removal from a
+single input file to refine it before diving into child processes. This will be
+done as a single function taking a filename as its argument and the implementa-
+tion is likely split to reasonable chunks after a working version is formed.
+The basic architecture will be minimal at this point as I've yet to familiarize
+myself with the boilerplate needed for the "additional" features of the task.
 
-Siivousfunktio muotoutui yksinkertaiseksi rajatun merkkimäärän bufferiin ri-
-vejä lukevaksi ratkaisuksi. Jonkinlainen flägeillä toteutettu tilakone tuntui
-loogiselta ratkaisulta ylipitkien rivien ja kommenttilohkojen käsittelyyn.
-Tässä vaiheessa ohjelma poistaa annetun tiedoston kommentit ja täysin tyhjät
-rivit. Määritetyn rivibufferin yli venyvät, rajalta alkavat tai sille päätty-
-vät kommentit toimivat myös niinkuin pitää, mutta tabeja tai välilyöntejä si-
-sältävät ri vit jäävät putsattuun tiedostoon. Ohjelma tulostaa myös lokin
-operaatioista riveineen omaan tiedostoonsa ja toteutuksena on sprintf, jotta
-porttaus lopulliseen pääprosessiin huuteluun olisi yksinkertaista.
+The cleaning function developed into reding a fixed length of characters and
+keeping a simple state to handle longer lines and comment blocks. At this point,
+the program takes a single file as a command line and removes comments as well
+as empty lines (first character '\n') from it. Comments spanning over read buf-
+fers and starting or ending at the border of buffers are also handled as needed.
+A log file is created for operations of interest (beginnings, ends of comments,
+detection of empty lines).
