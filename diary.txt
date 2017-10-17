@@ -16,3 +16,19 @@ as empty lines (first character '\n') from it. Comments spanning over read buf-
 fers and starting or ending at the border of buffers are also handled as needed.
 A log file is created for operations of interest (beginnings, ends of comments,
 detection of empty lines).
+
+After implementing the buffered read with fgets I reconsidered the requirements
+and decided to move straight to a memory mapped implementation. This resulted
+in a drastically simplified logic as reading was done character by character
+with no more worries of overhead in reading that way. The only real error case
+I'm currently aware of is string handling as comment tags inside strings are
+treated as comments. This seems to be in line with the assignment spec, which
+I'll have to ask about. Or just implement proper handling as it shouldn't be a
+big deal to implement :P
+
+Part 2: Child processes
+-------------------------------------------------------------------------------
+I continued to basic process handling. My aim is to have the main execution
+spawn child processes to handle each file and possibly collect the logs in the
+main process. I started trying out fork() by simply spawning processes in a loop
+and printing the connected variables before exit().

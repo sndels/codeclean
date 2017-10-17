@@ -1,11 +1,17 @@
+#include <errno.h>
+#include <fcntl.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <errno.h>
-#include <ctype.h>
-
 #include <string.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 
-#define BUFFER_LEN 85
+typedef enum {
+    DEFAULT,
+    COMMENT_LINE,
+    COMMENT_BLOCK
+} StreamState;
 
 int clean_file(char* path)
 {
@@ -15,17 +21,41 @@ int clean_file(char* path)
     FILE* log_file = fopen(log_path, "w");
     if (log_file == NULL) {
         printf("Opening log file \"%s\" for write failed with errno %i\n", log_path, errno);
-        return -1;
+        return 1;
     }
 
     // Open input file
-    fprintf(log_file,"Opening file \"%s\" for read\n", path);
-    FILE* input_file = fopen(path, "r");
-    if (input_file == NULL) {
-        fprintf(log_file, "Failed with error %i\n", errno); 
+    fprintf(log_file,"Mapping file \"%s\" for read\n", path);
+    int input_file = open(path, O_RDONLY);
+    if (input_file == -1) {
+        fprintf(log_file, "open failed with error %i\n", errno); 
         fclose(log_file);
-        return -1;
+        return 1;
     }
+    // Check validity
+    struct stat sb;
+    if (fstat(input_file, &sb) == -1) {
+        fprintf(log_file, "fstat failed with error %i\n", errno); 
+        close(input_file);
+        fclose(log_file);
+        return 1;
+    }
+    if (!S_ISREG(sb.st_mode)) {
+        fprintf(log_file, "%s is not a file\n", path); 
+        close(input_file);
+        fclose(log_file);
+        return 1;
+    }
+    // Map to memory
+    off_t input_len = sb.st_size;
+    char* input_mapped = mmap(0, input_len, PROT_READ, MAP_SHARED, input_file, 0);
+    if (input_mapped == MAP_FAILED) {
+        fprintf(log_file, "mmap failed\n"); 
+        close(input_file);
+        fclose(log_file);
+        return 1;
+    }
+
     fprintf(log_file,"Success\n");
 
     // Open output file
@@ -36,137 +66,68 @@ int clean_file(char* path)
     if (output_file == NULL) {
         fprintf(log_file, "Failed with error %i\n", errno); 
         fclose(log_file);
-        fclose(input_file);
+        close(input_file);
         return -1;
     }
     fprintf(log_file,"Success\n");
 
     // Go through input
-    int in_comment_line = 0;
-    int in_comment_block = 0;
-    int ended_with_slash = 0;
-    int ended_with_star = 0;
-    int has_newline = 0;
+    StreamState state = DEFAULT;
     int line_number = 1;
-    char raw_buf[BUFFER_LEN];
-    while (fgets(raw_buf, BUFFER_LEN, input_file) != NULL) {
-        // NOTE: Should indented line comment only -lines also be removed?
-        // Count lines
-        if (has_newline)
+    for (off_t in_off = 0; in_off < input_len - 1; in_off++) {
+        // Keep count of input lines
+        if (input_mapped[in_off] == '\n')
             line_number++;
 
-        // Skip empty lines
-        if (has_newline && raw_buf[0] == '\n') {
-            fprintf(log_file, "Skipped empty line %i\n", line_number);
-            continue;
-        }
-        
-        // Handle last buffer ending on '/'
-        if (ended_with_slash) {
-            if (raw_buf[0] == '/') {
-                in_comment_line = 1;
-                fprintf(output_file, "\n");
-                fprintf(log_file, "Removed line comment from line %i\n", line_number);
+        if (state == COMMENT_LINE) { // Wait for newline to end comment line
+            if (input_mapped[in_off] == '\n')
+                state = DEFAULT;
+            else
                 continue;
-            } else if (raw_buf[0] == '*') {
-                in_comment_block = 1;
-                fprintf(output_file, "\n");
-                fprintf(log_file, "Comment block started in line %i\n", line_number);
-                continue;
-            } else
-                fprintf(output_file, "/");
-        }
-
-        // Handle last buffer ending on '*'
-        if (in_comment_block && ended_with_star) {
-            if (raw_buf[0] == '/') {
-                in_comment_block = 0;
-                strcpy(raw_buf, raw_buf + 1);
+        } else if (state == COMMENT_BLOCK) { // Wait for */ to end comment block
+            if (input_mapped[in_off] == '*' && input_mapped[in_off + 1] == '/') {
+                state = DEFAULT;
                 fprintf(log_file, "Comment block ended on line %i\n", line_number);
+                in_off += 2;
             } else
-                fprintf(output_file, "*");
-        }
-
-        // Check for newline
-        has_newline = strchr(raw_buf, '\n') != NULL;
-
-        // Handle oversized line comment
-        if (in_comment_line) {
-            if (has_newline) {
-                in_comment_line = 0;
-                fprintf(output_file, "\n");
-            }
-            continue;
-        }
-
-        // Handle comment block
-        if (in_comment_block) {
-            // Check for ending tag
-            char* comment_end = strchr(raw_buf, '*');
-            while (comment_end != NULL) {
-                // Handle the hit being the last character in buffer
-                if (comment_end == raw_buf + BUFFER_LEN - 2) {
-                    comment_end = NULL;
-                    ended_with_star = 1;
-                    break;
-                }
-
-                if (comment_end[1] == '/') {
-                    in_comment_block = 0;
-                    strcpy(raw_buf, comment_end + 2);
-                    fprintf(log_file, "Comment block ended on line %i\n", line_number);
-                    break;
-                }
-                comment_end = strchr(comment_end + 1, '*');
-            }
-            
-            // Skip buffer if no ending tag was found
-            if (comment_end == NULL)
                 continue;
-        }
-
-        // Check for a starting comment
-        char* comment_start = strchr(raw_buf, '/');
-        while (comment_start != NULL) {
-            // Handle the hit being the last character in buffer
-            if (comment_start == raw_buf + BUFFER_LEN - 2) {
-                comment_start = NULL;
-                ended_with_slash = 1;
-                break;
-            }
-
-            // Check following character and set "state"
-            if (comment_start[1] == '/') {
-                in_comment_line = !has_newline;
-                fprintf(log_file, "Removed line comment from line %i\n", line_number);
-                break;
-            }
-            else if (comment_start[1] == '*') {
-                fprintf(log_file, "Comment block started in line %i\n", line_number);
-                in_comment_block = 1;
-                break;
-            }
-            comment_start = strchr(comment_start + 1, '/');
-        }
-
-        // Cut line short if comment is found
-        if (comment_start != NULL) {
-            if (comment_start == raw_buf) {
-                raw_buf[0] = '\0';
-            } else {
-                comment_start[0] = '\n';
-                comment_start[1] = '\0';
+        } else { // Check for starting comment
+            if (input_mapped[in_off] == '/') {
+                if (input_mapped[in_off + 1] == '/') {
+                    state = COMMENT_LINE;
+                    fprintf(log_file, "Comment at the end of line %i\n", line_number);
+                    in_off++;
+                    continue;
+                } else if (input_mapped[in_off + 1] == '*') {
+                    state = COMMENT_BLOCK;
+                    fprintf(log_file, "Comment block started on line %i\n", line_number);
+                    in_off++;
+                    continue;
+                }
             }
         }
 
-        // Write cleaned line to output
-        fprintf(output_file, "%s", raw_buf);
+        // Skip empty lines and lines starting with a comment
+        if (input_mapped[in_off] == '\n') {
+            if (input_mapped[in_off + 1] == '\n') {
+                fprintf(log_file, "Skipped empty line %i\n", line_number);
+                continue;
+            } else if (input_mapped[in_off + 1] == '/') {
+                if (input_mapped[in_off + 2] == '/' || input_mapped[in_off + 2] == '*') {
+                    fprintf(log_file, "Skipped empty line %i\n", line_number);
+                    continue;
+                }
+            }
+        }
+        fputc(input_mapped[in_off], output_file);
+        //TODO: Increment eventual out offset here
     }
-    fprintf(log_file, "File ended on line %i\n", line_number);
+    if (state == DEFAULT) // Print last character if necessary
+        fputc(input_mapped[input_len - 1], output_file);
 
     // Clean up on streams and malloc'd buffers
     fclose(log_file);
-    fclose(input_file);
+    close(input_file);
     fclose(output_file);
     free(log_path);
     free(clean_path);
@@ -177,10 +138,11 @@ int main(int argc, char* argv[])
 {
     if (argc < 2) {
         printf("No file given to clean\n");
-        return 1;
+        exit(1);
     }
+
     int err = clean_file(argv[1]);
     if (err != 0)
-        return 1;
-    return 0;
+        exit(1);
+    exit(0);
 }
