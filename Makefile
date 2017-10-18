@@ -3,7 +3,7 @@ CC=gcc
 CFLAGS=-Wall -pedantic
 
 SRCDIR=src
-OBJ=main.o
+OBJ=main.o cleaner.o mapped_file.o
 
 %.o: $(SRCDIR)/%.c $(DEPS)
 		$(CC) -c -o $@ $< $(CFLAGS)
