@@ -18,13 +18,12 @@ A log file is created for operations of interest (beginnings, ends of comments,
 detection of empty lines).
 
 After implementing the buffered read with fgets I reconsidered the requirements
-and decided to move straight to a memory mapped implementation. This resulted
-in a drastically simplified logic as reading was done character by character
-with no more worries of overhead in reading that way. The only real error case
-I'm currently aware of is string handling as comment tags inside strings are
-treated as comments. This seems to be in line with the assignment spec, which
-I'll have to ask about. Or just implement proper handling as it shouldn't be a
-big deal to implement :P
+and decided to move straight to a memory mapped implementation for both the
+input and output. This resulted in a drastically simplified logic as reading was
+done character by character with no more worries of overhead in reading that way.
+The only real error case I'm currently aware of is string handling as comment
+tags inside strings are treated as comments. This seems to be in line with the
+assignment spec, which I'll have to double check.
 
 Part 2: Child processes
 -------------------------------------------------------------------------------
