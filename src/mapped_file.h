@@ -10,8 +10,8 @@ struct MappedFile {
     char* map;
 };
 
-struct MappedFile open_input_mapped(char* path, FILE* log_file);
-struct MappedFile open_output_mapped(char* path, off_t size, FILE* log_file);
-int close_mapped_file(struct MappedFile* mf, FILE* log_file);
+struct MappedFile open_input_mapped(char* path);
+struct MappedFile open_output_mapped(char* path, off_t size);
+int close_mapped_file(struct MappedFile* mf);
 
 #endif // MAPPED_FILE_H

@@ -25,6 +25,11 @@ The only real error case I'm currently aware of is string handling as comment
 tags inside strings are treated as comments. This seems to be in line with the
 assignment spec, which I'll have to double check.
 
+Before moving ontoprocesses, I split the code in more manageable pieces moved
+logging to stdout and stderr. The reasoning behind the latter was that both
+streams can be redirected to open files per process and not having to juggle
+a log file in subroutines cleaned up the code quite nicely.
+
 Part 2: Child processes
 -------------------------------------------------------------------------------
 I continued to basic process handling. My aim is to have the main execution
