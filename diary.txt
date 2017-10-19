@@ -44,4 +44,5 @@ the print order to go out of whack when using both stdout and stderr. There
 seems to be something wrong in my implementation as the program hangs or exits
 before subprocesses if I print to stdout from multiple subprocesses after
 restoring stdout and stderr to terminal. Possibly due to dup2 to and from the
-same file descriptor for both streams?
+same file descriptor for both streams? - Actually just a 'if (pid < 0)' for child
+branch instead of if '(pid == 0)' as it shoud be. Derp.

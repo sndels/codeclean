@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
         if ((pid = fork()) == -1) {
             perror("fork");
         }
-        if (pid > 0) {
+        if (pid == 0) {
             char* path = argv[proc + 1];
 
             // Open log file
