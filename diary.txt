@@ -46,3 +46,10 @@ before subprocesses if I print to stdout from multiple subprocesses after
 restoring stdout and stderr to terminal. Possibly due to dup2 to and from the
 same file descriptor for both streams? - Actually just a 'if (pid < 0)' for child
 branch instead of if '(pid == 0)' as it shoud be. Derp.
+
+Spawning a unique process for each file is probably not the smartest choice so I
+adopted a structure where given arguments are divided into even blocks for the
+child processes and the parent handles any trailing arguments even if fewer or no
+children get generated. The amount of processes generated is capped by either the
+amount of even argument blocks or a constant maximum child count, whichever is
+smaller.

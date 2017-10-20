@@ -4,9 +4,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/wait.h>
+#include <sys/param.h>
 #include <unistd.h>
 
 #include "cleaner.h"
+
+#define MAX_PROC 10
 
 int main(int argc, char* argv[])
 {
@@ -18,54 +21,66 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    // Spawn a child to handle each given file 
-    for (int proc = 0; proc < argc - 1; proc++) {
-        pid_t pid;
+    int proc;
+    pid_t pid;
+    // Divide cmd arguments to even blocks
+    int block_size = (argc - 1) / MIN(argc - 1, MAX_PROC) + 1;
+    int proc_count = (argc - 1) / block_size + 1;
+    // Spawn child processes
+    for (proc = 1; proc < proc_count; proc++) {
+        // Stop spawning if fork fails, parent will handle rest of the args
         if ((pid = fork()) == -1) {
             perror("fork");
-        }
-        if (pid == 0) {
-            char* path = argv[proc + 1];
-
-            // Open log file
-            char* log_path = malloc(strlen(path) + 4);
-            sprintf(log_path, "%s.log", path);
-            int log_file = open(log_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-            free(log_path);
-            if (log_file == -1) {
-                fprintf(stderr, "Error opening %s\n", log_path);
-                perror("open");
-                exit(EXIT_FAILURE);
-            }
-
-            // Redirect stdout and stderr
-            int old_stdout = dup(STDOUT_FILENO);
-            int old_stderr = dup(STDERR_FILENO);
-            if (dup2(log_file, STDOUT_FILENO) == -1 || dup2(log_file, STDERR_FILENO) == -1) {
-                perror("cannot redirect stdout or stderr");
-                close(log_file);
-                exit(EXIT_FAILURE);
-            }
-            close(log_file);
-
-            // Clean file
-            int err = clean_file(path);
-
-            // Restore stdout and stderr 
-            fflush(stdout);
-            fflush(stderr);
-            dup2(old_stdout, STDOUT_FILENO);
-            dup2(old_stderr, STDERR_FILENO);
-
-            if (err == 1)
-                fprintf(stderr, "Process for cleaning %s failed\n", path);
-
-            exit(err == 0 ? EXIT_SUCCESS : EXIT_FAILURE);
-        }
+            break;
+        } else if (pid == 0)
+            break;
     }
 
-    // Wait for children to exit
-    while (wait(NULL) != -1 || errno != ECHILD);
+    // Loop over block of arguments assigned for each process
+    int bloc_start = (proc - 1) * block_size;
+    int block_end = pid == 0 ? proc * block_size : argc - 1;// Parent handles trailing args
+    for (int i = bloc_start; i < block_end; i++) {
+        char* path = argv[i + 1];
+
+        // Open log file
+        char* log_path = malloc(strlen(path) + 4);
+        sprintf(log_path, "%s.log", path);
+        int log_file = open(log_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
+        free(log_path);
+        if (log_file == -1) {
+            fprintf(stderr, "Error opening %s\n", log_path);
+            perror("open");
+            continue;
+        }
+
+        // Redirect stdout and stderr
+        int old_stdout = dup(STDOUT_FILENO);
+        int old_stderr = dup(STDERR_FILENO);
+        if (dup2(log_file, STDOUT_FILENO) == -1 || dup2(log_file, STDERR_FILENO) == -1) {
+            fprintf(stderr, "Cannot redirect stdout or stderr to log file\n");
+            perror("dup2");
+            close(log_file);
+            continue;
+        }
+        close(log_file);
+
+        // Clean file
+        int err = clean_file(path);
+
+        // Restore stdout and stderr 
+        fflush(stdout);
+        fflush(stderr);
+        dup2(old_stdout, STDOUT_FILENO);
+        dup2(old_stderr, STDERR_FILENO);
+
+        if (err == 1)
+            fprintf(stderr, "Process for cleaning %s failed\n", path);
+    }
+
+    // Parent waits for children to exit
+    if (pid != 0) {
+        while (wait(NULL) != -1 || errno != ECHILD);
+    }
 
     exit(EXIT_SUCCESS);
 }
