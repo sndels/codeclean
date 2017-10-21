@@ -26,14 +26,19 @@ int main(int argc, char* argv[])
     // Divide cmd arguments to even blocks
     int block_size = (argc - 1) / MIN(argc - 1, MAX_PROC) + 1;
     int proc_count = (argc - 1) / block_size + 1;
-    // Spawn child processes
-    for (proc = 1; proc < proc_count; proc++) {
-        // Stop spawning if fork fails, parent will handle rest of the args
-        if ((pid = fork()) == -1) {
-            perror("fork");
-            break;
-        } else if (pid == 0)
-            break;
+    if (argc > 2) { // Only spawn children if multiple files are given
+        // Spawn child processes
+        for (proc = 1; proc < proc_count; proc++) {
+            // Stop spawning if fork fails, parent will handle rest of the args
+            if ((pid = fork()) == -1) {
+                perror("fork");
+                break;
+            } else if (pid == 0)
+                break;
+        }
+    } else {
+        proc = 1;
+        pid = 1;
     }
 
     // Loop over block of arguments assigned for each process
