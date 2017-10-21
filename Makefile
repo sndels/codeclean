@@ -1,6 +1,7 @@
 # Base from http://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 CC=gcc
-CFLAGS=-Wall -pedantic
+CFLAGS= -g -Wall -pedantic
+LDFLAGS= -g
 
 SRCDIR=src
 OBJ=main.o cleaner.o mapped_file.o
@@ -9,7 +10,7 @@ OBJ=main.o cleaner.o mapped_file.o
 		$(CC) -c -o $@ $< $(CFLAGS)
 
 codeclean: $(OBJ)
-		gcc -o $@ $^ $(CFLAGS) $(LIBS)
+		gcc -o $@ $^ $(LDFLAGS)
 
 .PHONY: clean
 
