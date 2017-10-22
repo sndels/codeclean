@@ -102,8 +102,11 @@ int clean_file(char* path)
         }
     }
     // Print last character if necessary
-    if (state == DEFAULT)
+    if (!(input_file.map[input_file.size - 2] == '*' &&
+          input_file.map[input_file.size - 1] == '/'))
         output_file.map[out_off] = input_file.map[input_file.size - 1];
+    else
+        out_off--;
 
     printf("Finished processing file %s\n", path);
 
