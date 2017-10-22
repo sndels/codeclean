@@ -1,15 +1,15 @@
-Code cleaning
+Project diary for codeclean
 
-Part 1: Basic functionality
--------------------------------------------------------------------------------
-I'll start by implementing a bare-bones version of comment removal from a
-single input file to refine it before diving into child processes. This will be
-done as a single function taking a filename as its argument and the implementa-
-tion is likely split to reasonable chunks after a working version is formed.
-The basic architecture will be minimal at this point as I've yet to familiarize
-myself with the boilerplate needed for the "additional" features of the task.
+Basic functionality
+--------------------------------------------------------------------------------
+I'll start by implementing a bare-bones version of comment removal from a single
+input file to refine it before diving into child processes. This will be done as
+a single function taking a filename as its argument and the implementation is
+likely split to reasonable chunks after a working version is formed. The basic
+architecture will be minimal at this point as I've yet to familiarize myself with
+the boilerplate needed for the "additional" features of the task.
 
-The cleaning function developed into reding a fixed length of characters and
+The cleaning function developed into reading a fixed length of characters and
 keeping a simple state to handle longer lines and comment blocks. At this point,
 the program takes a single file as a command line and removes comments as well
 as empty lines (first character '\n') from it. Comments spanning over read buf-
@@ -18,38 +18,56 @@ A log file is created for operations of interest (beginnings, ends of comments,
 detection of empty lines).
 
 After implementing the buffered read with fgets I reconsidered the requirements
-and decided to move straight to a memory mapped implementation for both the
-input and output. This resulted in a drastically simplified logic as reading was
-done character by character with no more worries of overhead in reading that way.
-The only real error case I'm currently aware of is string handling as comment
-tags inside strings are treated as comments. This seems to be in line with the
-assignment spec, which I'll have to double check.
+and decided to move straight to a memory mapped implementation for both the input
+and output. This resulted in drastically simplified logic as reading was done
+character by character with no more worries of overhead in reading that way. The
+only real error case I'm currently aware of is string handling as comment tags
+inside strings are treated as comments. This seems to be in line with the assign-
+ment spec, which I'll have to double check.
 
-Before moving ontoprocesses, I split the code in more manageable pieces moved
+Before moving onto processes, I split the code in more manageable pieces moved
 logging to stdout and stderr. The reasoning behind the latter was that both
-streams can be redirected to open files per process and not having to juggle
-a log file in subroutines cleaned up the code quite nicely.
+streams can be redirected to open files per process and not having to juggle a
+log file in subroutines cleaned up the code quite nicely.
 
-Part 2: Child processes
--------------------------------------------------------------------------------
-I continued to basic process handling. My aim is to have the main execution
-spawn child processes to handle each file and possibly collect the logs in the
-main process. I started trying out fork() by simply spawning processes in a loop
-and printing the connected variables before exit().
+Child processes
+--------------------------------------------------------------------------------
+I continued to basic process handling. My aim is to have the main execution spawn
+child processes to handle each file and possibly collect the logs in the main
+process. I started trying out fork() by simply spawning processes in a loop and
+printing the connected variables before exit().
 
-Extending the code to having a process for each file was pretty straightforward
-even with the redirection of stdout and stderr to a single log file. I had to
-remove buffering from stdout as redirecting it to a file without that caused
-the print order to go out of whack when using both stdout and stderr. There
-seems to be something wrong in my implementation as the program hangs or exits
-before subprocesses if I print to stdout from multiple subprocesses after
-restoring stdout and stderr to terminal. Possibly due to dup2 to and from the
-same file descriptor for both streams? - Actually just a 'if (pid < 0)' for child
-branch instead of if '(pid == 0)' as it shoud be. Derp.
+Extending the code to having a process for each file was pretty straight forward
+even with the redirection of stdout and stderr to a log file. I had to remove
+buffering from stdout as redirecting it to a file without that caused the print
+order to go out of whack when using both stdout and stderr. There seems to be
+something wrong in my implementation as the program hangs or exits before subp-
+rocesses if I print to stdout from multiple subprocesses after restoring stdout
+and stderr to terminal. Possibly due to dup2 to and from the same file descriptor
+for both streams? - Actually just a 'if (pid < 0)' for child branch instead of
+if '(pid == 0)' as it shoud be. Derp.
 
 Spawning a unique process for each file is probably not the smartest choice so I
 adopted a structure where given arguments are divided into even blocks for the
-child processes and the parent handles any trailing arguments even if fewer or no
-children get generated. The amount of processes generated is capped by either the
-amount of even argument blocks or a constant maximum child count, whichever is
-smaller.
+child processes and the parent handles any trailing arguments. The amount of pro-
+cesses generated is capped by either the amount of even argument blocks or a cons-
+tant maximum child count, whichever is smaller. I also defined a single file as
+a special case that only uses the parent process to simplify the block math.
+
+Intermediate cleanup
+-------------------------------------------------------------------------------
+I asked about some vague parts of the spec and went to implementing the removal
+of lines containing only whitespace. I simply used a flag and the position of the
+first character in the current line to print e.g. indentation when actual code is
+encountered. I also noticed that printing of the final character in a file was
+broken when the second to last line ended in a comment. The obvious fix was to
+check if the last two characters ended a comment block and print the last char-
+acter if not.
+
+So far testing has been through running cleanup on the source files of the project
+which also captured the error in not handling the last character correctly. I've
+adopted a habit of marking preprocessor endifs with the corresponding if clause
+so both cleaned headers ended incorrectly. At this point, the cleanup seems to be
+funcitonal as the cleaned sources compile and resulting executable works as
+intended. I tested the forking of processes and handling of multiple input files
+simply by comparing the input to relevant variables printed from each process.
