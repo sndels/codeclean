@@ -15,4 +15,4 @@ codeclean: $(OBJ)
 .PHONY: clean
 
 clean:
-		rm -f *.o codeclean
+		rm -f *.o
