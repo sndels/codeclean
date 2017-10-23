@@ -45,6 +45,8 @@ int clean_file(char* path)
         return 1;
     }
 
+    printf("Cleaning code\n");
+
     // Go through input
     StreamState state = DEFAULT;
     int line_number = 1;
@@ -149,5 +151,6 @@ int clean_file(char* path)
     close_mapped_file(&input_file);
     close_mapped_file(&output_file);
 
+    printf("Done");
     return ret_val + quit_cleaner;
 }

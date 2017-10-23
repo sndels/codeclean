@@ -40,9 +40,7 @@ struct MappedFile open_input_mapped(char* path)
         perror("mmap");
         close(input_file.fp);
         input_file.fp = -1;
-    } else
-        printf("Success\n");
-
+    }
     return input_file;
 }
 
@@ -74,9 +72,7 @@ struct MappedFile open_output_mapped(char* path, off_t size)
         close(output_file.fp);
         free(clean_path);
         output_file.fp = -1;
-    } else
-        printf("Success\n");
-
+    }
     return output_file;
 }
 
