@@ -4,7 +4,7 @@ CFLAGS= -g -Wall -pedantic
 LDFLAGS= -g
 
 SRCDIR=src
-OBJ=main.o cleaner.o mapped_file.o
+OBJ=main.o cleaner.o mapped_file.o filelock.o
 
 %.o: $(SRCDIR)/%.c $(DEPS)
 		$(CC) -c -o $@ $< $(CFLAGS)
