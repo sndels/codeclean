@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
         // Check if user has interrupted
         if (quit_main) {
-            fprintf(stderr, "Process interrupted by user before cleaning %s\n", path);
+            fprintf(stderr, "Process interrupted by user before cleaning \"%s\"\n", path);
             break;
         }
 
@@ -76,14 +76,14 @@ int main(int argc, char* argv[])
         sprintf(log_path, "%s.log", path);
         int log_file = open(log_path, O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
         if (log_file == -1) {
-            fprintf(stderr, "Error opening %s\n", log_path);
+            fprintf(stderr, "Error opening \"%s\"\n", log_path);
             perror("open");
             fprintf(stderr, "Continuing to next file\n");
             continue;
         } else {
             // Clear log file
             if (ftruncate(log_file, 0) != 0) {
-                fprintf(stderr, "Error clearing %s\n", log_path);
+                fprintf(stderr, "Error clearing \"%s\"\n", log_path);
                 perror("ftruncate");
                 close(log_file);
                 fprintf(stderr, "Continuing to next file\n");
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
             } else {
                 // Redirect stdout and stderr
                 if (dup2(log_file, STDOUT_FILENO) == -1) {
-                    fprintf(stderr, "Redirecting stdout to %s failed\n", log_path);
+                    fprintf(stderr, "Redirecting stdout to \"%s\" failed\n", log_path);
                     perror("dup2");
                     close(log_file);
                     fprintf(stderr, "Continuing to next file\n");
@@ -108,12 +108,12 @@ int main(int argc, char* argv[])
 
         int should_break = 0;
         if (err == 1)
-            fprintf(stderr, "Process for cleaning %s ended in error\n", path);
+            fprintf(stderr, "Process for cleaning \"%s\" ended in error\n", path);
         else if (err == 2) {
-            fprintf(stderr, "Process for cleaning %s interrupted by user\n", path);
+            fprintf(stderr, "Process for cleaning \"%s\" interrupted by user\n", path);
             should_break = 1;
         } else if (err == 3) {
-            fprintf(stderr, "Process for cleaning %s interrupted by user and ended in error\n", path);
+            fprintf(stderr, "Process for cleaning \"%s\" interrupted by user and ended in error\n", path);
             should_break = 1;
         }
 
