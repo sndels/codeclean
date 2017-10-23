@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -11,8 +12,22 @@
 
 #define MAX_PROC 10
 
+// Main signal handler
+int quit_main = 0;
+void sig_int_main(int signo)
+{
+    if (signo == SIGINT) quit_main = 1;
+}
+
 int main(int argc, char* argv[])
 {
+    // Init signal handling
+    struct sigaction sig;
+    sigemptyset(&sig.sa_mask);
+    sig.sa_flags=0;
+    sig.sa_handler = sig_int_main;
+    sigaction(SIGINT,&sig,NULL);
+
     // Disable stdout buffering to fix print order in file logging
     setbuf(stdout, NULL);
 
@@ -47,6 +62,12 @@ int main(int argc, char* argv[])
     for (int i = bloc_start; i < block_end; i++) {
         char* path = argv[i + 1];
 
+        // Check if user has interrupted
+        if (quit_main) {
+            fprintf(stderr, "Process interrupted by user before cleaning %s\n", path);
+            break;
+        }
+
         // Open log file
         char* log_path = malloc(strlen(path) + 4);
         sprintf(log_path, "%s.log", path);
@@ -71,6 +92,7 @@ int main(int argc, char* argv[])
 
         // Clean file
         int err = clean_file(path);
+        sigaction(SIGINT,&sig,NULL); // Rebind main handler
 
         // Restore stdout and stderr 
         fflush(stdout);
@@ -79,7 +101,14 @@ int main(int argc, char* argv[])
         dup2(old_stderr, STDERR_FILENO);
 
         if (err == 1)
-            fprintf(stderr, "Process for cleaning %s failed\n", path);
+            fprintf(stderr, "Process for cleaning %s ended in error\n", path);
+        else if (err == 2) {
+            fprintf(stderr, "Process for cleaning %s interrupted by user\n", path);
+            break;
+        } else if (err == 3) {
+            fprintf(stderr, "Process for cleaning %s interrupted by user ended in error\n", path);
+            break;
+        }
     }
 
     // Parent waits for children to exit

@@ -2,6 +2,7 @@
 
 #include <ctype.h>
 #include <errno.h>
+#include <signal.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
@@ -15,8 +16,22 @@ typedef enum {
     COMMENT_BLOCK
 } StreamState;
 
+// Signal handler
+int quit_cleaner = 0;
+void sig_int_cleaner(int signo)
+{
+    if (signo == SIGINT) quit_cleaner = 2;
+}
+
 int clean_file(char* path)
 {
+    // Init signal handling
+    struct sigaction sig;
+    sigemptyset(&sig.sa_mask);
+    sig.sa_flags=0;
+    sig.sa_handler = sig_int_cleaner;
+    sigaction(SIGINT,&sig,NULL);
+
     // Open input file
     struct MappedFile input_file = open_input_mapped(path);
     if (input_file.fp == -1) {
@@ -37,6 +52,9 @@ int clean_file(char* path)
     off_t line_start = 0;
     off_t out_off = 0;
     for (off_t in_off = 0; in_off < input_file.size - 1; in_off++) {
+        // Check if user has interrupted
+        if (quit_cleaner) break;
+
         // Read relevant characters
         char current_char = input_file.map[in_off];
         char next_char = input_file.map[in_off + 1];
@@ -102,9 +120,11 @@ int clean_file(char* path)
         }
     }
     // Print last character if necessary
-    if (!(input_file.map[input_file.size - 2] == '*' &&
-          input_file.map[input_file.size - 1] == '/'))
-        output_file.map[out_off] = input_file.map[input_file.size - 1];
+    char prev_char = input_file.map[input_file.size - 2];
+    char cur_char = input_file.map[input_file.size - 1];
+    if (!quit_cleaner && ((state == COMMENT_LINE && cur_char == '\n') ||
+        (state == DEFAULT && print_char && !(prev_char == '*' && cur_char == '/'))))
+        output_file.map[out_off] = cur_char;
     else
         out_off--;
 
@@ -124,9 +144,10 @@ int clean_file(char* path)
     }
 
     printf("Cleaning up\n");
-    
+
     // Clean up on files, maps and malloc'd buffers
     close_mapped_file(&input_file);
     close_mapped_file(&output_file);
-    return ret_val;
+
+    return ret_val + quit_cleaner;
 }

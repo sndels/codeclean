@@ -71,3 +71,16 @@ so both cleaned headers ended incorrectly. At this point, the cleanup seems to b
 funcitonal as the cleaned sources compile and resulting executable works as
 intended. I tested the forking of processes and handling of multiple input files
 simply by comparing the input to relevant variables printed from each process.
+
+Signal handling
+-------------------------------------------------------------------------------
+I pondered on the best place to implement handling SIGINT and figured it makes
+most sense in the cleaning function as the main cleaning loop is inside it. I took
+the example code provided in the lecture material and removed SIGIO from it as
+that wasn't necessary for my purposes. The possibility of interrupting cleanup in
+any state also helped me figure out a previously mishandled edgecase of the source
+ending in a line comment. I settled on defining the interrupt variable as 0 or 2
+so I could detect both the reason (file ended or SIGINT) for cleanup and possible
+error encountered just by the summed return value of the function (0 = file ended,
+1 = file ended + error, 2 = SIGINT, 3 = SIGINT + error). Thus, if the function
+returned in response to SIGINT, the main loop also terminates.
