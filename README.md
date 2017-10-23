@@ -1,6 +1,6 @@
 # codeclean
 
-A simple course project that removes comments and empty lines from C-code. Supports multiple files and uses multiple processes to handle such input. Note that comment tags in strings or macros are still seen as such.
+A simple course project that removes comments and empty lines from C-code. Note that comment tags in strings or macros are still seen as such. Supports multiple files and uses multiple processes to handle such input. Corresponding files are locked cleanup and memorymapping is utilized to get fast character by character reads and writes.
 
 ## Usage
 Built by simply running `make` in the directory. Should work™ on OSX and Linux as only gcc and some sys-headers are used. Cleaning is performed by supplying files as arguments. For example:
