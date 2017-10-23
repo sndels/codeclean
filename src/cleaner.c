@@ -136,11 +136,11 @@ int clean_file(char* path)
     // Sync output to disk, resize file first
     printf("Syncing cleaned file\n");
     if (ftruncate(output_file.fp, out_off + 1) != 0) {
-        perror("ftruncate");
+        printf("ftruncate: %s\n", strerror(errno));
         ret_val = 1;
     } else {
-        if (msync(output_file.map, out_off + 1, MS_SYNC) == -1) {
-            perror("msync");
+        if (msync(output_file.map, out_off + 1, MS_SYNC) != 0) {
+            printf("msync: %s\n", strerror(errno));
             ret_val = 1;
         }
     }

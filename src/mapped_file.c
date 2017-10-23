@@ -16,19 +16,19 @@ struct MappedFile open_input_mapped(char* path)
     // Open file
     input_file.fp = open(path, O_RDONLY);
     if (input_file.fp == -1) {
-        perror("open"); 
+        printf("open: %s\n", strerror(errno));
         return input_file;
     }
     // Check validity
     struct stat sb;
     if (fstat(input_file.fp, &sb) == -1) {
-        perror("fstat");
+        printf("fstat: %s\n", strerror(errno));
         close(input_file.fp);
         input_file.fp = -1;
         return input_file;
     }
     if (!S_ISREG(sb.st_mode)) {
-        fprintf(stderr, "%s is not a file\n", path); 
+        fprintf(stderr, "%s is not a file\n", path);
         close(input_file.fp);
         input_file.fp = -1;
         return input_file;
@@ -37,7 +37,7 @@ struct MappedFile open_input_mapped(char* path)
     input_file.size = sb.st_size;
     input_file.map = mmap(0, input_file.size, PROT_READ, MAP_SHARED, input_file.fp, 0);
     if (input_file.map == MAP_FAILED) {
-        perror("mmap");
+        printf("mmap: %s\n", strerror(errno));
         close(input_file.fp);
         input_file.fp = -1;
     }
@@ -54,13 +54,13 @@ struct MappedFile open_output_mapped(char* path, off_t size)
     output_file.fp = open(clean_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     free(clean_path);
     if (output_file.fp == -1) {
-        perror("open");
+        printf("open: %s\n", strerror(errno));
         return output_file;
     }
     // Set size (ftruncate adds zero padding)
     output_file.size = size;
     if (ftruncate(output_file.fp, size) != 0) {
-        perror("ftruncate");
+        printf("ftruncate: %s\n", strerror(errno));
         close(output_file.fp);
         output_file.fp = -1;
         return output_file;
@@ -68,7 +68,7 @@ struct MappedFile open_output_mapped(char* path, off_t size)
     // Map to memory
     output_file.map = mmap(0, output_file.size, PROT_WRITE, MAP_SHARED, output_file.fp, 0);
     if (output_file.map == MAP_FAILED) {
-        perror("mmap"); 
+        printf("mmap: %s\n", strerror(errno));
         close(output_file.fp);
         free(clean_path);
         output_file.fp = -1;
@@ -80,11 +80,11 @@ int close_mapped_file(struct MappedFile* mf)
 {
     int ret_val = 0;
     if (munmap(mf->map, mf->size) == -1) {
-        perror("munmap"); 
+        printf("munmap: %s\n", strerror(errno));
         ret_val = 1;
     }
     if (close(mf->fp) == -1) {
-        perror("close"); 
+        printf("close: %s\n", strerror(errno));
         ret_val = 1;
     }
     return ret_val;

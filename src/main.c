@@ -59,8 +59,8 @@ int main(int argc, char* argv[])
     // Loop over block of arguments assigned for each process
     int bloc_start = (proc - 1) * block_size;
     int block_end = pid == 0 ? proc * block_size : argc - 1;// Parent handles trailing args
-    for (int i = bloc_start; i < block_end; i++) {
-        char* path = argv[i + 1];
+    for (int arg = bloc_start; arg < block_end; arg++) {
+        char* path = argv[arg + 1];
 
         // Check if user has interrupted
         if (quit_main) {
@@ -68,47 +68,71 @@ int main(int argc, char* argv[])
             break;
         }
 
+        // Get current stdout
+        int old_stdout = dup(STDOUT_FILENO);
+
         // Open log file
         char* log_path = malloc(strlen(path) + 4);
         sprintf(log_path, "%s.log", path);
-        int log_file = open(log_path, O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-        free(log_path);
+        int log_file = open(log_path, O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
         if (log_file == -1) {
             fprintf(stderr, "Error opening %s\n", log_path);
             perror("open");
+            fprintf(stderr, "Continuing to next file\n");
             continue;
-        }
-
-        // Redirect stdout and stderr
-        int old_stdout = dup(STDOUT_FILENO);
-        int old_stderr = dup(STDERR_FILENO);
-        if (dup2(log_file, STDOUT_FILENO) == -1 || dup2(log_file, STDERR_FILENO) == -1) {
-            fprintf(stderr, "Cannot redirect stdout or stderr to log file\n");
-            perror("dup2");
-            close(log_file);
-            continue;
+        } else {
+            // Clear log file
+            if (ftruncate(log_file, 0) != 0) {
+                fprintf(stderr, "Error clearing %s\n", log_path);
+                perror("ftruncate");
+                close(log_file);
+                fprintf(stderr, "Continuing to next file\n");
+                continue;
+            } else {
+                // Redirect stdout and stderr
+                if (dup2(log_file, STDOUT_FILENO) == -1) {
+                    fprintf(stderr, "Redirecting stdout to %s failed\n", log_path);
+                    perror("dup2");
+                    close(log_file);
+                    fprintf(stderr, "Continuing to next file\n");
+                    continue;
+                }
+            }
         }
         close(log_file);
+        free(log_path);
 
         // Clean file
         int err = clean_file(path);
-        sigaction(SIGINT,&sig,NULL); // Rebind main handler
+        sigaction(SIGINT, &sig, NULL); // Rebind main signal handler
 
-        // Restore stdout and stderr 
-        fflush(stdout);
-        fflush(stderr);
-        dup2(old_stdout, STDOUT_FILENO);
-        dup2(old_stderr, STDERR_FILENO);
-
+        int should_break = 0;
         if (err == 1)
             fprintf(stderr, "Process for cleaning %s ended in error\n", path);
         else if (err == 2) {
             fprintf(stderr, "Process for cleaning %s interrupted by user\n", path);
-            break;
+            should_break = 1;
         } else if (err == 3) {
-            fprintf(stderr, "Process for cleaning %s interrupted by user ended in error\n", path);
-            break;
+            fprintf(stderr, "Process for cleaning %s interrupted by user and ended in error\n", path);
+            should_break = 1;
         }
+
+        // Restore stdout
+        fflush(stdout);
+        if (dup2(old_stdout, STDOUT_FILENO) == -1) {
+            fprintf(stderr, "Redirecting stdout back to original failed\n");
+            perror("dup2");
+            if (arg + 1 != block_end){
+                fprintf(stderr, "Files\n");
+                for (int i = arg + 1; i < block_end; i++) {
+                    fprintf(stderr, "%s\n", argv[i + 1]);
+                }
+                fprintf(stderr, "left unprocessed\n");
+            }
+            should_break = 1;
+        }
+
+        if (should_break) break;
     }
 
     // Parent waits for children to exit

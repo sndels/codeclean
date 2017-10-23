@@ -84,3 +84,16 @@ so I could detect both the reason (file ended or SIGINT) for cleanup and possibl
 error encountered just by the summed return value of the function (0 = file ended,
 1 = file ended + error, 2 = SIGINT, 3 = SIGINT + error). Thus, if the function
 returned in response to SIGINT, the main loop also terminates.
+
+Better stream handling
+-------------------------------------------------------------------------------
+I noticed that my current error handling in redirecting stdout and stderr is lack-
+ing so I started to look into more robust checks. My current way of redirecting
+both streams to the log file does enable printing detailed error descriptions using
+perror but results in the inability to print errors to terminal while the streams
+are redirected. Thus, I now redirect only stdout and do all logging to with printf
+by using strerror to get error details. This keeps stderr intact so I can use that
+for errors that should be seen in terminal. Failure to restore stdout now results
+in the process in question to exit after printing the files left unprocessed.
+Errors in creating or redirecting to the log_file just result in skipping the
+current file after the error is printed to stderr.
