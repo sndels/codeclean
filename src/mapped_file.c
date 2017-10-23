@@ -9,6 +9,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "filelock.h"
+
 struct MappedFile open_input_mapped(char* path)
 {
     printf("Mapping file \"%s\" for read\n", path);
@@ -28,7 +30,15 @@ struct MappedFile open_input_mapped(char* path)
         return input_file;
     }
     if (!S_ISREG(sb.st_mode)) {
-        fprintf(stderr, "%s is not a file\n", path);
+        printf("%s is not a file\n", path);
+        close(input_file.fp);
+        input_file.fp = -1;
+        return input_file;
+    }
+    // Obtain read lock
+    if (get_filelock(input_file.fp, F_RDLCK) == -1){
+        printf("Couldn't get a read lock\n");
+        printf("fcntl: %s\n", strerror(errno));
         close(input_file.fp);
         input_file.fp = -1;
         return input_file;
@@ -55,6 +65,14 @@ struct MappedFile open_output_mapped(char* path, off_t size)
     free(clean_path);
     if (output_file.fp == -1) {
         printf("open: %s\n", strerror(errno));
+        return output_file;
+    }
+    // Obtain write lock
+    if (get_filelock(output_file.fp, F_WRLCK) == -1){
+        printf("Couldn't get a write lock\n");
+        printf("fcntl: %s\n", strerror(errno));
+        close(output_file.fp);
+        output_file.fp = -1;
         return output_file;
     }
     // Set size (ftruncate adds zero padding)

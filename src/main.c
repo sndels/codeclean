@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #include "cleaner.h"
+#include "filelock.h"
 
 #define MAX_PROC 10
 
@@ -80,24 +81,30 @@ int main(int argc, char* argv[])
             perror("open");
             fprintf(stderr, "Continuing to next file\n");
             continue;
-        } else {
-            // Clear log file
-            if (ftruncate(log_file, 0) != 0) {
-                fprintf(stderr, "Error clearing \"%s\"\n", log_path);
-                perror("ftruncate");
-                close(log_file);
-                fprintf(stderr, "Continuing to next file\n");
-                continue;
-            } else {
-                // Redirect stdout and stderr
-                if (dup2(log_file, STDOUT_FILENO) == -1) {
-                    fprintf(stderr, "Redirecting stdout to \"%s\" failed\n", log_path);
-                    perror("dup2");
-                    close(log_file);
-                    fprintf(stderr, "Continuing to next file\n");
-                    continue;
-                }
-            }
+        }
+        // Acquire write lock
+        if (get_filelock(log_file, F_WRLCK) == -1){
+            fprintf(stderr, "Couldn't get a write lock on \"%s\"\n", log_path);
+            perror("fcntl");
+            close(log_file);
+            fprintf(stderr, "Continuing to next file\n");
+            continue;
+        }
+        // Clear log file
+        if (ftruncate(log_file, 0) != 0) {
+            fprintf(stderr, "Error clearing \"%s\"\n", log_path);
+            perror("ftruncate");
+            close(log_file);
+            fprintf(stderr, "Continuing to next file\n");
+            continue;
+        }
+        // Redirect stdout and stderr
+        if (dup2(log_file, STDOUT_FILENO) == -1) {
+            fprintf(stderr, "Redirecting stdout to \"%s\" failed\n", log_path);
+            perror("dup2");
+            close(log_file);
+            fprintf(stderr, "Continuing to next file\n");
+            continue;
         }
         close(log_file);
         free(log_path);

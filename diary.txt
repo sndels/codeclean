@@ -98,3 +98,10 @@ in the process in question to exit after printing the files left unprocessed.
 Errors in creating or redirecting to the log_file just result in skipping the
 current file after the error is printed to stderr. I also made logging and error
 messages a bit more descriptive than they previously were.
+
+File locking
+-------------------------------------------------------------------------------
+File locking is an obvious addition to the project so I again took the example
+code and cut it down to a simple wrapper for fcntl. Then I implemented getting
+read lock for input and write locks for output files with failure resulting in
+relevant error messages and skipping the file.
