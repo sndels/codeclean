@@ -14,10 +14,10 @@
 #define MAX_PROC 10
 
 // Main signal handler
-int quit_main = 0;
-void sig_int_main(int signo)
+static int quit = 0;
+static void sig_int(int signo)
 {
-    if (signo == SIGINT) quit_main = 1;
+    if (signo == SIGINT) quit = 1;
 }
 
 int main(int argc, char* argv[])
@@ -26,7 +26,7 @@ int main(int argc, char* argv[])
     struct sigaction sig;
     sigemptyset(&sig.sa_mask);
     sig.sa_flags=0;
-    sig.sa_handler = sig_int_main;
+    sig.sa_handler = sig_int;
     sigaction(SIGINT,&sig,NULL);
 
     // Disable stdout buffering to fix print order in file logging
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
         char* path = argv[arg + 1];
 
         // Check if user has interrupted
-        if (quit_main) {
+        if (quit) {
             fprintf(stderr, "Process interrupted by user before cleaning \"%s\"\n", path);
             break;
         }

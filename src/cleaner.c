@@ -17,10 +17,10 @@ typedef enum {
 } StreamState;
 
 // Signal handler
-int quit_cleaner = 0;
-void sig_int_cleaner(int signo)
+static int quit = 0;
+static void sig_int(int signo)
 {
-    if (signo == SIGINT) quit_cleaner = 2;
+    if (signo == SIGINT) quit = 2;
 }
 
 int clean_file(char* path)
@@ -29,7 +29,7 @@ int clean_file(char* path)
     struct sigaction sig;
     sigemptyset(&sig.sa_mask);
     sig.sa_flags=0;
-    sig.sa_handler = sig_int_cleaner;
+    sig.sa_handler = sig_int;
     sigaction(SIGINT,&sig,NULL);
 
     // Open input file
@@ -55,7 +55,7 @@ int clean_file(char* path)
     off_t out_off = 0;
     for (off_t in_off = 0; in_off < input_file.size - 1; in_off++) {
         // Check if user has interrupted
-        if (quit_cleaner) break;
+        if (quit) break;
 
         // Read relevant characters
         char current_char = input_file.map[in_off];
@@ -124,7 +124,7 @@ int clean_file(char* path)
     // Print last character if necessary
     char prev_char = input_file.map[input_file.size - 2];
     char cur_char = input_file.map[input_file.size - 1];
-    if (!quit_cleaner && ((state == COMMENT_LINE && cur_char == '\n') ||
+    if (!quit && ((state == COMMENT_LINE && cur_char == '\n') ||
         (state == DEFAULT && print_char && !(prev_char == '*' && cur_char == '/'))))
         output_file.map[out_off] = cur_char;
     else
@@ -152,5 +152,5 @@ int clean_file(char* path)
     close_mapped_file(&output_file);
 
     printf("Done");
-    return ret_val + quit_cleaner;
+    return ret_val + quit;
 }
