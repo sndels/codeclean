@@ -1,11 +1,7 @@
-#include <errno.h>
 #include <fcntl.h>
-#include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/wait.h>
-#include <sys/param.h>
 #include <unistd.h>
 
 #include "cleaner.h"
@@ -92,7 +88,7 @@ int main(int argc, char* argv[])
             should_break = 1;
         }
 
-        // Compare by hand to get line and char positions on errors
+        // Compare with loop to get line and char positions on errors
         FILE* correct_file = fopen(reference_files[i], "r");
         FILE* output_file = fopen(output_files[i], "r");
         if (correct_file == NULL) {
