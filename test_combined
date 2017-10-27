@@ -1,0 +1,10 @@
+test combined
+block/* with text, a // tag and */ on both sides
+line comment // with a /* inside it 
+line comment // with a */ inside it
+/* multiline comment with
+ * a //
+ * inside it
+ */
+erroneous */ that will do nothing
+this file will also end without newline :'(

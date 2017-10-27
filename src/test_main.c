@@ -11,11 +11,13 @@
 #include "cleaner.h"
 #include "filelock.h"
 
-#define TEST_FILES 1
+#define TEST_FILES 3
 
-static const char* test_files[] = {"test_blocks"};
-static const char* comparison_files[] = {"test_blocks.correct"};
-static const char* output_files[] = {"test_blocks.clean"};
+static const char* test_files[] = {"test_blocks", "test_lines", "test_combined"};
+static const char* reference_files[] = {"test_blocks.correct", "test_lines.correct",
+                                         "test_combined.correct"};
+static const char* output_files[] = {"test_blocks.clean", "test_lines.clean",
+                                     "test_combined.clean"};
 
 int main(int argc, char* argv[])
 {
@@ -88,24 +90,29 @@ int main(int argc, char* argv[])
         }
 
         // Compare by hand to get line and char positions on errors
-        FILE* correct_file = fopen(comparison_files[i], "r");
+        FILE* correct_file = fopen(reference_files[i], "r");
         FILE* output_file = fopen(output_files[i], "r");
+        if (correct_file == NULL) {
+            printf("Failed to open file %s\n", reference_files[i]);
+            continue;
+        }
+        if (output_file == NULL) {
+            printf("Failed to open file %s\n", output_files[i]);
+            continue;
+        }
         char cor_c;
         char out_c;
         int line = 1;
         int reported = 0;
         while ((cor_c = fgetc(correct_file)) != EOF && (out_c = fgetc(output_file)) != EOF) {
             if (cor_c != out_c && !reported) {
-                printf("Lne %i doesn't match\n", line);
+                printf("First error on line %i\n", line);
                 reported = 1;
             }
-            if (out_c == '\n') {
-                line++;
-                reported = 0;
-            }
+            if (out_c == '\n') line++;
         }
-        if (out_c == EOF || (out_c = fgetc(output_file)) != EOF)
-            printf("file endings differ\n");
+        if (!reported && (out_c == EOF || (out_c = fgetc(output_file)) != EOF))
+            printf("File endings differ\n");
 
         if (should_break) break;
     }

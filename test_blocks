@@ -1,0 +1,20 @@
+test blocks
+block/* with text */ on both sides
+block /*with text*/
+on next line
+block spanning /* over
+*/two lines
+/* this block starts a line and has // a comment tag inside */
+                        /* block starting indented
+                         * and continuing so
+                         * until ending a line */
+                        /* block starting indented
+                         * and continuing so
+                         * until it ends with */ text after
+this is some text to include
+                        /* block starting indented
+                         * and continuin so
+                         *until it ends with closing on next line
+                         */and having text right after it
+this should be the last line
+/* as this block is on the "real" last line */

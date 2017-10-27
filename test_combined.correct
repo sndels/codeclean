@@ -1,0 +1,6 @@
+test combined
+block on both sides
+line comment 
+line comment 
+erroneous */ that will do nothing
+this file will also end without newline :'(
