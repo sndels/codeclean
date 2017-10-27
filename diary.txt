@@ -105,3 +105,12 @@ File locking is an obvious addition to the project so I again took the example
 code and cut it down to a simple wrapper for fcntl. Then I implemented getting
 read lock for input and write locks for output files with failure resulting in
 relevant error messages and skipping the file.
+
+Final testing and cleanup
+-------------------------------------------------------------------------------
+At this point, I have the required parts implemented so I move on to final cleanup
+and testing of the code. I'll first do funcitonal testing by tailoring a couple
+of test files for covering all the possible failure conditions I can think of +
+hand cleaned references to compare against in software. I'll then do a few passes just
+reading the code and commenting things while cleaning probable suboptimal lines
+and running against the tests I made.
