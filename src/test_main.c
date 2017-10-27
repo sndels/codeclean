@@ -13,11 +13,14 @@
 
 #define TEST_FILES 3
 
-static const char* test_files[] = {"test_blocks", "test_lines", "test_combined"};
-static const char* reference_files[] = {"test_blocks.correct", "test_lines.correct",
-                                         "test_combined.correct"};
-static const char* output_files[] = {"test_blocks.clean", "test_lines.clean",
-                                     "test_combined.clean"};
+static const char* test_files[] = {"tests/test_blocks", "tests/test_lines",
+                                   "tests/test_combined"};
+static const char* reference_files[] = {"tests/test_blocks.correct",
+                                        "tests/test_lines.correct",
+                                        "tests/test_combined.correct"};
+static const char* output_files[] = {"tests/test_blocks.clean",
+                                     "tests/test_lines.clean",
+                                     "tests/test_combined.clean"};
 
 int main(int argc, char* argv[])
 {
