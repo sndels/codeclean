@@ -61,7 +61,7 @@ int main(int argc, char* argv[])
     int bloc_start = (proc - 1) * block_size;
     int block_end = pid == 0 ? proc * block_size : argc - 1;// Parent handles trailing args
     for (int arg = bloc_start; arg < block_end; arg++) {
-        char* path = argv[arg + 1];
+        const char* path = argv[arg + 1];
 
         // Check if user has interrupted
         if (quit) {

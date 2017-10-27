@@ -11,7 +11,7 @@
 
 #include "filelock.h"
 
-struct MappedFile open_input_mapped(char* path)
+struct MappedFile open_input_mapped(const char* path)
 {
     printf("Mapping file \"%s\" for read\n", path);
     struct MappedFile input_file;
@@ -54,7 +54,7 @@ struct MappedFile open_input_mapped(char* path)
     return input_file;
 }
 
-struct MappedFile open_output_mapped(char* path, off_t size)
+struct MappedFile open_output_mapped(const char* path, off_t size)
 {
     char* clean_path = malloc(strlen(path) + 7);
     sprintf(clean_path, "%s.clean", path);

@@ -23,7 +23,7 @@ static void sig_int(int signo)
     if (signo == SIGINT) quit = 2;
 }
 
-int clean_file(char* path)
+int clean_file(const char* path)
 {
     // Init signal handling
     struct sigaction sig;
