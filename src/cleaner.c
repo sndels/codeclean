@@ -45,14 +45,21 @@ int clean_file(const char* path)
         return 1;
     }
 
-    printf("Cleaning code\n");
+    // Reserve memory for first pass
+    char* tmp_output = malloc(input_file.size);
+    if (tmp_output == NULL) {
+        printf("Failed to reserve memory for intermediate cleanup result");
+        close_mapped_file(&input_file);
+        close_mapped_file(&output_file);
+        return 1;
+    }
 
-    // Go through input
+    printf("Cleaning comments\n");
+
+    // Remove comments
     StreamState state = DEFAULT;
     int line_number = 1;
-    int print_char = 0;
-    off_t line_start = 0;
-    off_t out_off = 0;
+    uint32_t tmp_last= 0;
     for (off_t in_off = 0; in_off < input_file.size - 1; in_off++) {
         // Check if user has interrupted
         if (quit) break;
@@ -67,79 +74,89 @@ int clean_file(const char* path)
         int comment_block_start = current_char == '/' && next_char == '*';
         int comment_block_end = current_char == '*' && next_char == '/';
 
-        // Keep count of input lines, reset line status
+        // Keep count of input lines, reset comment status
         if (newline) {
-            if (!print_char && state != COMMENT_BLOCK)
-                printf("Skipped empty line %i\n", line_number);
             line_number++;
             if (state == COMMENT_LINE)
                 state = DEFAULT;
-            if (state != COMMENT_BLOCK) {
-                // Include first of multiple newlines
-                if (print_char) {
-                    output_file.map[out_off] = current_char;
-                    out_off++;
-                }
+        }
+
+        if (state == COMMENT_LINE) {
+            continue;
+        } else if (state == COMMENT_BLOCK) { // Wait for */ to end comment block
+            if (comment_block_end) {
+                state = DEFAULT;
+                printf("Comment block ended on line %i\n", line_number);
+                in_off++;
             }
-            print_char = 0;
-            line_start = in_off + 1;
-        } else {
-            if (state == COMMENT_LINE) {
+            continue;
+        } else { // Check for starting comment
+            if (comment_line_start){
+                state = COMMENT_LINE;
+                printf("Comment at the end of line %i\n", line_number);
+                in_off++;
                 continue;
-            } else if (state == COMMENT_BLOCK) { // Wait for */ to end comment block
-                if (comment_block_end) {
-                    state = DEFAULT;
-                    printf("Comment block ended on line %i\n", line_number);
-                    in_off += 2;
-                    print_char = 1;
-                }
+            } else if (comment_block_start) {
+                state = COMMENT_BLOCK;
+                printf("Comment block started on line %i\n", line_number);
+                in_off++;
                 continue;
-            } else { // Check for starting comment
-                if (comment_line_start){
-                    state = COMMENT_LINE;
-                    printf("Comment at the end of line %i\n", line_number);
-                    in_off++;
-                    continue;
-                } else if (comment_block_start) {
-                    state = COMMENT_BLOCK;
-                    printf("Comment block started on line %i\n", line_number);
-                    in_off++;
-                    continue;
-                } else {
-                    // Print indentation for populated line and reset 
-                    if (!print_char && !isspace(current_char)) {
-                        for (off_t c = line_start; c < in_off; c++, out_off++)
-                            output_file.map[out_off] = input_file.map[c];
-                        print_char = 1;
-                    }
-                }
             }
         }
 
-        if (print_char) {
-            output_file.map[out_off] = current_char;
-            out_off++;
-        }
+        tmp_output[tmp_last] = current_char;
+        tmp_last++;
     }
-    // Print last character if necessary
+    // Copy last character if necessary
     char prev_char = input_file.map[input_file.size - 2];
     char cur_char = input_file.map[input_file.size - 1];
     if (!quit && ((state == COMMENT_LINE && cur_char == '\n') ||
-        (state == DEFAULT && print_char && !(prev_char == '*' && cur_char == '/'))))
-        output_file.map[out_off] = cur_char;
+        (state == DEFAULT && !(prev_char == '*' && cur_char == '/'))))
+        tmp_output[tmp_last] = cur_char;
     else
-        out_off--;
+        tmp_last--;
+
+    printf("Cleaning empty lines\n");
+
+    // Write cleaned code to mapped output without empty lines
+    off_t out_last = 0;
+    uint32_t line_start = 0;
+    int print_char = 0;
+    for (uint32_t tmp_off = 0; tmp_off < tmp_last; tmp_off++) {
+        if (quit) break;
+
+        char cur_char = tmp_output[tmp_off];
+        if (!print_char) {
+            if (!isspace(cur_char)) {
+                print_char = 1;
+                for (uint32_t c = line_start; c < tmp_off; c++, out_last++)
+                    output_file.map[out_last] = tmp_output[c];
+            }
+        }
+        if (print_char) {
+            output_file.map[out_last] = cur_char;
+            out_last++;
+        }
+        if (cur_char == '\n') {
+            print_char = 0;
+            line_start = tmp_off + 1;
+        }
+    }
+    if (tmp_output[tmp_last] != '\n')
+        output_file.map[out_last] = cur_char;
+    else
+        out_last--;
 
     printf("Finished processing file %s\n", path);
 
     int ret_val = 0;
     // Sync output to disk, resize file first
     printf("Syncing cleaned file\n");
-    if (ftruncate(output_file.fp, out_off + 1) != 0) {
+    if (ftruncate(output_file.fp, out_last + 1) != 0) {
         printf("ftruncate: %s\n", strerror(errno));
         ret_val = 1;
     } else {
-        if (msync(output_file.map, out_off + 1, MS_SYNC) != 0) {
+        if (msync(output_file.map, out_last + 1, MS_SYNC) != 0) {
             printf("msync: %s\n", strerror(errno));
             ret_val = 1;
         }
@@ -148,6 +165,7 @@ int clean_file(const char* path)
     printf("Cleaning up\n");
 
     // Clean up on files, maps and malloc'd buffers
+    free(tmp_output);
     close_mapped_file(&input_file);
     close_mapped_file(&output_file);
 
