@@ -111,6 +111,13 @@ Final testing and cleanup
 At this point, I have the required parts implemented so I move on to final cleanup
 and testing of the code. I'll first do funcitonal testing by tailoring a couple
 of test files for covering all the possible failure conditions I can think of +
-hand cleaned references to compare against in software. I'll then do a few passes just
-reading the code and commenting things while cleaning probable suboptimal lines
-and running against the tests I made.
+hand cleaned references to compare against in software. I'll then do a few passes
+just reading the code and commenting things while cleaning probable suboptimal
+lines and running against the tests I made.
+
+At this point I came to the conclusion that doing two distinct passes for removing
+comments and empty lines would be the simplest and least complex solution. This
+is best done writing the input without comments to a temporary buffer that is then
+writing to the cleaned output file without empty lines. Each removal of an empty
+line in place would require for the rest of the buffer to be shifted accordingly,
+which would ruin performance in large files with many empty lines.
