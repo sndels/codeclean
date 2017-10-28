@@ -1,10 +1,9 @@
 # Base from http://www.cs.colby.edu/maxwell/courses/tutorials/maketutor/
 CC=gcc
-CFLAGS= -g -Wall -pedantic
-LDFLAGS= -g
+CFLAGS= -Wall -pedantic
 
 SRCDIR=src
-OBJ=cleaner.o mapped_file.o filelock.o
+OBJ=cleaner.o filelock.o mapped_file.o
 
 all: codeclean test
 
@@ -12,10 +11,10 @@ all: codeclean test
 		$(CC) -c -o $@ $< $(CFLAGS)
 
 codeclean: $(OBJ) main.o
-		gcc -o $@ $^ $(LDFLAGS)
+		gcc -o $@ $^
 
 test: $(OBJ) test_main.o
-		gcc -o $@ $^ $(LDFLAGS)
+		gcc -o $@ $^
 
 .PHONY: clean
 
