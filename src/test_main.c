@@ -7,15 +7,22 @@
 #include "cleaner.h"
 #include "filelock.h"
 
-#define TEST_FILES 3
+#define TEST_FILES 5
 
-static const char* test_files[] = {"tests/test_blocks", "tests/test_lines",
+static const char* test_files[] = {"tests/test_blocks",
+                                   "tests/test_blocks2",
+                                   "tests/test_lines",
+                                   "tests/test_lines2",
                                    "tests/test_combined"};
 static const char* reference_files[] = {"tests/test_blocks.correct",
+                                        "tests/test_blocks2.correct",
                                         "tests/test_lines.correct",
+                                        "tests/test_lines2.correct",
                                         "tests/test_combined.correct"};
 static const char* output_files[] = {"tests/test_blocks.clean",
+                                     "tests/test_blocks2.clean",
                                      "tests/test_lines.clean",
+                                     "tests/test_lines2.clean",
                                      "tests/test_combined.clean"};
 
 int main(int argc, char* argv[])
@@ -25,6 +32,7 @@ int main(int argc, char* argv[])
 
     for (int i = 0; i < TEST_FILES; i++) {
         const char* path = test_files[i];
+        printf("Running tests on %s\n", path);
 
         // Get current stdout
         int old_stdout = dup(STDOUT_FILENO);

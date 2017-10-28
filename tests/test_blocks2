@@ -1,0 +1,4 @@
+test blocks2
+This line ends/* in a comment block that is
+ * followed by a newline
+ */

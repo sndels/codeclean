@@ -121,7 +121,7 @@ int clean_file(const char* path)
     off_t out_last = 0;
     uint32_t line_start = 0;
     int print_char = 0;
-    for (uint32_t tmp_off = 0; tmp_off < tmp_last; tmp_off++) {
+    for (uint32_t tmp_off = 0; tmp_off <= tmp_last; tmp_off++) {
         if (quit) break;
 
         char cur_char = tmp_output[tmp_off];
@@ -149,11 +149,9 @@ int clean_file(const char* path)
         }
     }
 
-    // Write last character if it's not a newline
-    if (tmp_output[tmp_last] != '\n')
-        output_file.map[out_last] = cur_char;
-    else
-        out_last--;
+    // Remove trailing newlines
+    while (output_file.map[--out_last] == '\n')
+        output_file.map[out_last] = '\0';
 
     printf("Finished processing file %s\n", path);
 
