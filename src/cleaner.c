@@ -59,7 +59,7 @@ int clean_file(const char* path)
     // Remove comments
     StreamState state = DEFAULT;
     int line_number = 1;
-    uint32_t tmp_last= 0;
+    int tmp_last= 0;
     for (off_t in_off = 0; in_off < input_file.size - 1; in_off++) {
         // Check if user has interrupted
         if (quit) break;
@@ -119,9 +119,9 @@ int clean_file(const char* path)
 
     // Write cleaned code to mapped output without empty lines
     off_t out_last = 0;
-    uint32_t line_start = 0;
+    int line_start = 0;
     int print_char = 0;
-    for (uint32_t tmp_off = 0; tmp_off <= tmp_last; tmp_off++) {
+    for (int tmp_off = 0; tmp_off <= tmp_last; tmp_off++) {
         if (quit) break;
 
         char cur_char = tmp_output[tmp_off];
@@ -131,7 +131,7 @@ int clean_file(const char* path)
             if (!isspace(cur_char)) {
                 print_char = 1;
                 // Write indentation
-                for (uint32_t c = line_start; c < tmp_off; c++, out_last++)
+                for (int c = line_start; c < tmp_off; c++, out_last++)
                     output_file.map[out_last] = tmp_output[c];
             }
         }

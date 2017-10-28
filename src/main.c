@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/param.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "cleaner.h"
