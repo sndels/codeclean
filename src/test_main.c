@@ -89,9 +89,9 @@ int main(int argc, char* argv[])
         }
 
         // Compare with loop to get line and char positions on errors
-        FILE* correct_file = fopen(reference_files[i], "r");
+        FILE* reference_file = fopen(reference_files[i], "r");
         FILE* output_file = fopen(output_files[i], "r");
-        if (correct_file == NULL) {
+        if (reference_file == NULL) {
             printf("Failed to open file %s\n", reference_files[i]);
             continue;
         }
@@ -103,10 +103,11 @@ int main(int argc, char* argv[])
         char out_c;
         int line = 1;
         int reported = 0;
-        while ((cor_c = fgetc(correct_file)) != EOF && (out_c = fgetc(output_file)) != EOF) {
+        while ((cor_c = fgetc(reference_file)) != EOF && (out_c = fgetc(output_file)) != EOF) {
             if (cor_c != out_c && !reported) {
                 printf("First error on line %i\n", line);
                 reported = 1;
+                break;
             }
             if (out_c == '\n') line++;
         }
