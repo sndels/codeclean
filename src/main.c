@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
         int old_stdout = dup(STDOUT_FILENO);
 
         // Open log file
-        char* log_path = malloc(strlen(path) + 4);
+        char* log_path = malloc(strlen(path) + 5);
         sprintf(log_path, "%s.log", path);
         int log_file = open(log_path, O_RDWR | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR);
         if (log_file == -1) {
