@@ -10,6 +10,7 @@
 #include "cleaner.h"
 #include "filelock.h"
 
+// Number of maximum processes including the parent
 #define MAX_PROC 10
 
 // Main signal handler
@@ -21,6 +22,12 @@ static void sig_int(int signo)
 
 int main(int argc, char* argv[])
 {
+    // Check if no argument was given
+    if (argc < 2) {
+        fprintf(stderr, "No file given to clean\n");
+        exit(EXIT_FAILURE);
+    }
+
     // Init signal handling
     struct sigaction sig;
     sigemptyset(&sig.sa_mask);
@@ -31,17 +38,13 @@ int main(int argc, char* argv[])
     // Disable stdout buffering to fix print order in file logging
     setbuf(stdout, NULL);
 
-    if (argc < 2) {
-        fprintf(stderr, "No file given to clean\n");
-        exit(EXIT_FAILURE);
-    }
-
     int proc;
     pid_t pid;
     // Divide cmd arguments to even blocks
     int block_size = (argc - 1) / MIN(argc - 1, MAX_PROC) + 1;
     int proc_count = (argc - 1) / block_size + 1;
-    if (argc > 2) { // Only spawn children if multiple files are given
+    // Only spawn children if multiple files are given
+    if (argc > 2) {
         // Spawn child processes
         for (proc = 1; proc < proc_count; proc++) {
             // Stop spawning if fork fails, parent will handle rest of the args
@@ -56,19 +59,21 @@ int main(int argc, char* argv[])
         pid = 1;
     }
 
-    // Loop over block of arguments assigned for each process
+    // Loop over each process' block of args, parent handles trailing
     int bloc_start = (proc - 1) * block_size;
-    int block_end = pid == 0 ? proc * block_size : argc - 1;// Parent handles trailing args
+    int block_end = pid == 0 ? proc * block_size : argc - 1;
     for (int arg = bloc_start; arg < block_end; arg++) {
         const char* path = argv[arg + 1];
 
         // Check if user has interrupted
         if (quit) {
-            fprintf(stderr, "Process interrupted by user before cleaning \"%s\"\n", path);
+            fprintf(stderr, "Process interrupted by user\n");
+            for (int i = arg; i < block_end; i++)
+                fprintf(stderr, "Cleaning of \"%s\" skipped\n", argv[i + 1]);
             break;
         }
 
-        // Get current stdout
+        // Save current stdout
         int old_stdout = dup(STDOUT_FILENO);
 
         // Open log file
@@ -108,9 +113,10 @@ int main(int argc, char* argv[])
         close(log_file);
         free(log_path);
 
-        // Clean file
+        // Clean the file
         int err = clean_file(path);
-        sigaction(SIGINT, &sig, NULL); // Rebind main signal handler
+        // Rebind main signal handler
+        sigaction(SIGINT, &sig, NULL);
 
         int should_break = 0;
         if (err == 1)
@@ -128,17 +134,16 @@ int main(int argc, char* argv[])
         if (dup2(old_stdout, STDOUT_FILENO) == -1) {
             fprintf(stderr, "Redirecting stdout back to original failed\n");
             perror("dup2");
-            if (arg + 1 != block_end){
-                fprintf(stderr, "Files\n");
-                for (int i = arg + 1; i < block_end; i++) {
-                    fprintf(stderr, "%s\n", argv[i + 1]);
-                }
-                fprintf(stderr, "left unprocessed\n");
-            }
             should_break = 1;
         }
 
-        if (should_break) break;
+        // Interrupt by user or failure to restore stdout will end the process
+        if (should_break) {
+            // Print out names of files left uncleaned
+            for (int i = arg + 1; i < block_end; i++)
+                fprintf(stderr, "Cleaning of \"%s\" skipped\n", argv[i + 1]);
+            break;
+        }
     }
 
     // Parent waits for children to exit
