@@ -110,8 +110,7 @@ int clean_file(const char* path)
     // Copy last character if necessary
     char prev_char = input_file.map[input_file.size - 2];
     char cur_char = input_file.map[input_file.size - 1];
-    if (!quit && ((state == COMMENT_LINE && cur_char == '\n') ||
-        (state == DEFAULT && !(prev_char == '*' && cur_char == '/'))))
+    if (!quit && state == DEFAULT && !(prev_char == '*' && cur_char == '/'))
         tmp_output[tmp_last] = cur_char;
     else
         tmp_last--;
@@ -126,22 +125,31 @@ int clean_file(const char* path)
         if (quit) break;
 
         char cur_char = tmp_output[tmp_off];
+
+        // Check if a non-whitespace character is encountered
         if (!print_char) {
             if (!isspace(cur_char)) {
                 print_char = 1;
+                // Write indentation
                 for (uint32_t c = line_start; c < tmp_off; c++, out_last++)
                     output_file.map[out_last] = tmp_output[c];
             }
         }
+
+        // Write current character if on a non-empty line
         if (print_char) {
             output_file.map[out_last] = cur_char;
             out_last++;
         }
+
+        // Write first of sequential newline
         if (cur_char == '\n') {
             print_char = 0;
             line_start = tmp_off + 1;
         }
     }
+
+    // Write last character if it's not a newline
     if (tmp_output[tmp_last] != '\n')
         output_file.map[out_last] = cur_char;
     else
@@ -149,8 +157,8 @@ int clean_file(const char* path)
 
     printf("Finished processing file %s\n", path);
 
-    int ret_val = 0;
     // Sync output to disk, resize file first
+    int ret_val = 0;
     printf("Syncing cleaned file\n");
     if (ftruncate(output_file.fp, out_last + 1) != 0) {
         printf("ftruncate: %s\n", strerror(errno));
