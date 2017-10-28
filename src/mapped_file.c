@@ -21,6 +21,7 @@ struct MappedFile open_input_mapped(const char* path)
         printf("open: %s\n", strerror(errno));
         return input_file;
     }
+
     // Check validity
     struct stat sb;
     if (fstat(input_file.fp, &sb) == -1) {
@@ -35,6 +36,7 @@ struct MappedFile open_input_mapped(const char* path)
         input_file.fp = -1;
         return input_file;
     }
+
     // Obtain read lock
     if (get_filelock(input_file.fp, F_RDLCK) == -1){
         printf("Couldn't get a read lock\n");
@@ -43,6 +45,7 @@ struct MappedFile open_input_mapped(const char* path)
         input_file.fp = -1;
         return input_file;
     }
+
     // Map to memory
     input_file.size = sb.st_size;
     input_file.map = mmap(0, input_file.size, PROT_READ, MAP_SHARED, input_file.fp, 0);
@@ -51,13 +54,16 @@ struct MappedFile open_input_mapped(const char* path)
         close(input_file.fp);
         input_file.fp = -1;
     }
+
     return input_file;
 }
 
 struct MappedFile open_output_mapped(const char* path, off_t size)
 {
+    // Add .clean to given filepath
     char* clean_path = malloc(strlen(path) + 7);
     sprintf(clean_path, "%s.clean", path);
+
     printf("Mapping file \"%s\" for write\n", clean_path);
     // Open file for write
     struct MappedFile output_file;
@@ -67,6 +73,7 @@ struct MappedFile open_output_mapped(const char* path, off_t size)
         printf("open: %s\n", strerror(errno));
         return output_file;
     }
+
     // Obtain write lock
     if (get_filelock(output_file.fp, F_WRLCK) == -1){
         printf("Couldn't get a write lock\n");
@@ -75,6 +82,7 @@ struct MappedFile open_output_mapped(const char* path, off_t size)
         output_file.fp = -1;
         return output_file;
     }
+
     // Set size (ftruncate adds zero padding)
     output_file.size = size;
     if (ftruncate(output_file.fp, size) != 0) {
@@ -83,6 +91,7 @@ struct MappedFile open_output_mapped(const char* path, off_t size)
         output_file.fp = -1;
         return output_file;
     }
+
     // Map to memory
     output_file.map = mmap(0, output_file.size, PROT_WRITE, MAP_SHARED, output_file.fp, 0);
     if (output_file.map == MAP_FAILED) {
@@ -91,19 +100,25 @@ struct MappedFile open_output_mapped(const char* path, off_t size)
         free(clean_path);
         output_file.fp = -1;
     }
+
     return output_file;
 }
 
 int close_mapped_file(struct MappedFile* mf)
 {
     int ret_val = 0;
+
+    // Unmap memory
     if (munmap(mf->map, mf->size) == -1) {
         printf("munmap: %s\n", strerror(errno));
         ret_val = 1;
     }
+
+    // Close file pointer
     if (close(mf->fp) == -1) {
         printf("close: %s\n", strerror(errno));
         ret_val = 1;
     }
+
     return ret_val;
 }
