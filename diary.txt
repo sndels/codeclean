@@ -121,3 +121,12 @@ is best done writing the input without comments to a temporary buffer that is th
 writing to the cleaned output file without empty lines. Each removal of an empty
 line in place would require for the rest of the buffer to be shifted accordingly,
 which would ruin performance in large files with many empty lines.
+
+I also ran the program through valgrind again and noticed my log path buffer being
+too short so I fixed that as well. At this point the program works as it should
+on the test files I made and valgrind doesn't indicate any leaks. CTRL-C interrupt
+also worked when I tested it using large files to lengthen runtime but msync
+sometimes fails on the interrupted file. I decided to skip syncing if the cleaning
+was interrupted as the file would not be complete anyway. I also added printing
+of the interrupt in the log so that the moment in the processing it happened is
+more clear to the user.

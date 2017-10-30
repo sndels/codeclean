@@ -21,6 +21,7 @@ static int quit = 0;
 static void sig_int(int signo)
 {
     if (signo == SIGINT) quit = 2;
+    printf("Interrupted by user\n");
 }
 
 int clean_file(const char* path)
@@ -54,7 +55,8 @@ int clean_file(const char* path)
         return 1;
     }
 
-    printf("Cleaning comments\n");
+    if (!quit)
+        printf("Cleaning comments\n");
 
     // Remove comments
     StreamState state = DEFAULT;
@@ -115,7 +117,8 @@ int clean_file(const char* path)
     else
         tmp_last--;
 
-    printf("Cleaning empty lines\n");
+    if (!quit)
+        printf("Cleaning empty lines\n");
 
     // Write cleaned code to mapped output without empty lines
     off_t out_last = 0;
@@ -153,18 +156,21 @@ int clean_file(const char* path)
     while (output_file.map[--out_last] == '\n')
         output_file.map[out_last] = '\0';
 
-    printf("Finished processing file \"%s\"\n", path);
+    if (!quit)
+        printf("Finished processing file \"%s\"\n", path);
 
     // Sync output to disk, resize file first
     int ret_val = 0;
-    printf("Syncing cleaned file\n");
-    if (ftruncate(output_file.fp, out_last + 1) != 0) {
-        printf("ftruncate: %s\n", strerror(errno));
-        ret_val = 1;
-    } else {
-        if (msync(output_file.map, out_last + 1, MS_SYNC) != 0) {
-            printf("msync: %s\n", strerror(errno));
+    if (!quit) {
+        printf("Syncing cleaned file\n");
+        if (ftruncate(output_file.fp, out_last + 1) != 0) {
+            printf("ftruncate: %s\n", strerror(errno));
             ret_val = 1;
+        } else {
+            if (msync(output_file.map, out_last + 1, MS_SYNC) != 0) {
+                printf("msync: %s\n", strerror(errno));
+                ret_val = 1;
+            }
         }
     }
 
