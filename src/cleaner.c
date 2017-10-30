@@ -153,7 +153,7 @@ int clean_file(const char* path)
     while (output_file.map[--out_last] == '\n')
         output_file.map[out_last] = '\0';
 
-    printf("Finished processing file %s\n", path);
+    printf("Finished processing file \"%s\"\n", path);
 
     // Sync output to disk, resize file first
     int ret_val = 0;
